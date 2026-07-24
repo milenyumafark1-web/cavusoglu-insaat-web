@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920" role="img" aria-labelledby="title">
+  <title id="title">İletişim öne çıkan hikâye kapağı</title>
+  <rect width="1080" height="1920" fill="#f7f5ef"/>
+  <circle cx="540" cy="960" r="280" fill="#171816"/>
+  <path d="M420 790h240c44 0 80 36 80 80v140c0 44-36 80-80 80H530l-110 90v-390Z" fill="none" stroke="#fff" stroke-width="38" stroke-linejoin="round"/>
+  <path d="M500 920h80M620 920h10" stroke="#149bd2" stroke-width="38" stroke-linecap="round"/>
+  <text x="540" y="1375" fill="#171816" font-family="Arial, Helvetica, sans-serif" font-size="68" font-weight="700" text-anchor="middle" letter-spacing="9">İLETİŞİM</text>
+</svg>

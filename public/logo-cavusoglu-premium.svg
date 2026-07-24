@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 220" role="img" aria-labelledby="title desc">
+  <title id="title">Çavuşoğlu İnşaat</title>
+  <desc id="desc">Ç harfinden geliştirilen mimari monogram ve Çavuşoğlu İnşaat yazısı</desc>
+  <g fill="none" fill-rule="evenodd">
+    <g transform="translate(18 18)">
+      <path fill="#142018" d="M92 0h74l18 18v42h-34V31H92c-34 0-61 27-61 61s27 61 61 61h58v-29h34v42l-18 18H92C41 184 0 143 0 92S41 0 92 0Z"/>
+      <path fill="#D0AB67" d="M73 52h73v27H73c-7 0-13 6-13 13s6 13 13 13h73v27H73c-22 0-40-18-40-40s18-40 40-40Z"/>
+      <path fill="#D0AB67" d="M72 191h40l-10 19H82z"/>
+    </g>
+    <g transform="translate(238 47)">
+      <text fill="#142018" font-family="Arial, Helvetica, sans-serif" font-size="58" font-weight="700" letter-spacing="2">
+        <tspan x="0" y="57">ÇAVUŞOĞLU</tspan>
+      </text>
+      <path fill="#D0AB67" d="M2 78h476v3H2z"/>
+      <text fill="#526057" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="600" letter-spacing="10">
+        <tspan x="2" y="119">İNŞAAT</tspan>
+      </text>
+      <text fill="#8A6A31" font-family="Arial, Helvetica, sans-serif" font-size="11" font-weight="600" letter-spacing="3">
+        <tspan x="201" y="119">YAPIM · UYGULAMA · TAAHHÜT</tspan>
+      </text>
+    </g>
+  </g>
+</svg>

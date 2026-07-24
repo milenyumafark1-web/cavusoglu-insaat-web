@@ -1,0 +1,27 @@
+{
+  "name": "Çavuşoğlu İnşaat Mersin",
+  "short_name": "Çavuşoğlu İnşaat",
+  "description": "Mersin merkezli yapım, renovasyon, mekanik tesisat, izolasyon ve anahtar teslim proje uygulamaları.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#181a17",
+  "theme_color": "#181a17",
+  "lang": "tr",
+  "categories": ["business", "construction"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 220" role="img" aria-labelledby="title">
+  <title id="title">Çavuşoğlu İnşaat monogramı</title>
+  <rect width="220" height="220" rx="20" fill="#142018"/>
+  <path fill="#F5F1E8" d="M102 27h72l19 19v37h-33V60h-58c-32 0-58 23-58 51s26 50 58 50h58v-23h33v37l-19 18h-72c-51 0-92-36-92-82s41-84 92-84Z"/>
+  <path fill="#D0AB67" d="M82 73h70v25H82c-8 0-14 6-14 13s6 13 14 13h70v25H82c-24 0-43-17-43-38s19-38 43-38Z"/>
+  <path fill="#D0AB67" d="M82 199h40l-10 18H92z"/>
+</svg>

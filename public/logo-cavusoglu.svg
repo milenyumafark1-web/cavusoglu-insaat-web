@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 170" role="img" aria-labelledby="title desc">
+  <title id="title">Çavuşoğlu İnşaat</title>
+  <desc id="desc">Mavi ve siyah çift C harfi içinde bina silüeti bulunan Çavuşoğlu İnşaat logosu</desc>
+  <g transform="translate(18 8)">
+    <path d="M104 9a64 64 0 1 0 57 93h-17a49 49 0 1 1 0-55h17A64 64 0 0 0 104 9Z" fill="#149bd2"/>
+    <path d="M104 24a49 49 0 1 0 42 74h-15a35 35 0 1 1 0-43h15a49 49 0 0 0-42-31Z" fill="#171816"/>
+    <path d="m69 89 10-5 4 52-11-9Z" fill="#149bd2"/>
+    <path d="m85 76 12-6 1 76-12-8Z" fill="#149bd2"/>
+    <path d="m101 65 13 5-1 77-11 5Z" fill="#171816"/>
+    <path d="m119 72 12 6-5 60-11 8Z" fill="#171816"/>
+    <path d="m136 88 10 4-8 35-10 8Z" fill="#149bd2"/>
+  </g>
+  <g transform="translate(190 37)">
+    <text x="0" y="47" fill="#171816" font-family="Arial, Helvetica, sans-serif" font-size="35" font-weight="500" letter-spacing="1.5">ÇAVUŞOĞLU</text>
+    <text x="1" y="82" fill="#149bd2" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700" letter-spacing="9">İNŞAAT</text>
+    <line x1="1" y1="99" x2="281" y2="99" stroke="#171816" stroke-width="1"/>
+    <text x="1" y="119" fill="#555" font-family="Arial, Helvetica, sans-serif" font-size="9" letter-spacing="5.2">MODERN YAPI SANATÇISI</text>
+  </g>
+</svg>

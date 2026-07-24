@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920" role="img" aria-labelledby="title">
+  <title id="title">Projeler öne çıkan hikâye kapağı</title>
+  <rect width="1080" height="1920" fill="#f7f5ef"/>
+  <circle cx="540" cy="960" r="280" fill="#149bd2"/>
+  <path d="M370 1110V850l170-130 170 130v260H590V940H490v170H370Z" fill="#fff"/>
+  <text x="540" y="1375" fill="#171816" font-family="Arial, Helvetica, sans-serif" font-size="68" font-weight="700" text-anchor="middle" letter-spacing="9">PROJELER</text>
+</svg>

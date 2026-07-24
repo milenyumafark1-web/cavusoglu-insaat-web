@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920" role="img" aria-labelledby="title">
+  <title id="title">Hakkımızda öne çıkan hikâye kapağı</title>
+  <rect width="1080" height="1920" fill="#f7f5ef"/>
+  <circle cx="540" cy="960" r="280" fill="#149bd2"/>
+  <circle cx="540" cy="830" r="78" fill="#fff"/>
+  <path d="M540 945v230M540 720v15" fill="none" stroke="#fff" stroke-width="46" stroke-linecap="round"/>
+  <text x="540" y="1375" fill="#171816" font-family="Arial, Helvetica, sans-serif" font-size="62" font-weight="700" text-anchor="middle" letter-spacing="7">HAKKIMIZDA</text>
+</svg>
