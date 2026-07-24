@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { ArrowLeft, Mail, MapPin } from "lucide-react";
 import { useLocation } from "wouter";
 import SiteFooter from "@/components/SiteFooter";
@@ -45,13 +46,29 @@ export default function Legal() {
   const isKvkk = location === "/kvkk";
   const sections = isKvkk ? kvkkSections : privacySections;
 
+  useEffect(() => {
+    const schema = {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Ana Sayfa", "item": "https://cavusogluinsaatmersin.com/" },
+        { "@type": "ListItem", "position": 2, "name": isKvkk ? "KVKK Aydınlatma" : "Gizlilik Politikası", "item": `https://cavusogluinsaatmersin.com${isKvkk ? "/kvkk" : "/gizlilik"}` }
+      ]
+    };
+    const script = document.createElement("script");
+    script.type = "application/ld+json";
+    script.textContent = JSON.stringify(schema);
+    document.head.appendChild(script);
+    return () => { document.head.removeChild(script); };
+  }, [isKvkk]);
+
   return (
     <main className="min-h-screen bg-[#f5f1e9] text-stone-950">
       <header className="bg-[#191b18] px-5 py-6 text-white sm:px-8 lg:px-14">
         <div className="mx-auto flex max-w-[1200px] items-center justify-between">
           <a href="/" aria-label="Çavuşoğlu İnşaat ana sayfa">
             <img
-              src="/logo-cavusoglu-premium-light.svg"
+              src="/logo-cavusoglu.svg"
               alt="Çavuşoğlu İnşaat"
               className="h-12 w-auto sm:h-14"
             />

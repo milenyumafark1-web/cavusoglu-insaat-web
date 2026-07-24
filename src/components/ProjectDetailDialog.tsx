@@ -5,7 +5,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, Share2, Check } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import BrandedProjectCover from "@/components/BrandedProjectCover";
 import type { Project } from "@/data/projects";
@@ -21,6 +21,7 @@ export default function ProjectDetailDialog({
   onClose,
 }: ProjectDetailDialogProps) {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [copied, setCopied] = useState(false);
   const hasPhotos = Boolean(project?.photos.length);
   const activeImage = project?.photos[activeImageIndex];
 
@@ -172,6 +173,25 @@ export default function ProjectDetailDialog({
               >
                 Benzer Bir Projeyi Konuşalım
                 <ArrowRight className="h-4 w-4" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const url = `${window.location.origin}/#projeler?proje=${project.id}`;
+                  if (navigator.share) {
+                    navigator.share({ title: project.title, url }).catch(() => {});
+                  } else {
+                    navigator.clipboard.writeText(url).then(() => {
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 2000);
+                    }).catch(() => {});
+                  }
+                }}
+                className="mt-3 flex w-full items-center justify-center gap-2 border border-white/15 px-5 py-3 text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-stone-400 transition-colors hover:text-[#d4b071]"
+              >
+                {copied ? <Check className="h-3.5 w-3.5" /> : <Share2 className="h-3.5 w-3.5" />}
+                {copied ? "Link kopyalandı" : "Projeyi Paylaş"}
               </button>
             </div>
           </div>

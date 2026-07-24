@@ -1,4 +1,4 @@
-import { Mail, MapPin } from "lucide-react";
+import { Download, Mail, MapPin } from "lucide-react";
 
 const footerNavigation = [
   ["Hakkımızda", "#hakkimizda"],
@@ -17,7 +17,7 @@ export default function SiteFooter() {
           <div>
             <a href="/#anasayfa" aria-label="Çavuşoğlu İnşaat ana sayfa">
               <img
-                src="/logo-cavusoglu-premium-light.svg"
+                src="/logo-cavusoglu.svg"
                 alt="Çavuşoğlu İnşaat"
                 className="h-16 w-auto max-w-full"
               />
@@ -94,14 +94,25 @@ export default function SiteFooter() {
           </div>
         </div>
 
-        <div className="flex flex-col justify-between gap-4 pt-7 text-[0.67rem] text-stone-500 sm:flex-row">
+        <div className="flex flex-col justify-between gap-4 pt-7 text-[0.67rem] text-stone-500 sm:flex-row sm:items-center">
           <p>© 2026 Çavuşoğlu İnşaat. Tüm hakları saklıdır.</p>
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="text-[0.6rem] tracking-wider text-stone-500 underline underline-offset-4 transition-opacity hover:opacity-60"
+            aria-label="Sayfayı yazdır"
+          >
+            Yazdır
+          </button>
           <div className="flex flex-wrap gap-5">
             <a className="transition-colors hover:text-white" href="/kvkk">
               KVKK
             </a>
             <a className="transition-colors hover:text-white" href="/gizlilik">
               Gizlilik
+            </a>
+            <a className="transition-colors hover:text-white" href="/erisilebilirlik">
+              Erişilebilirlik
             </a>
             <p>Mersin merkezli · Türkiye geneli proje deneyimi</p>
           </div>

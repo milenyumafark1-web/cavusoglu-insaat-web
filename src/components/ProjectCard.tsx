@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowRight, Building2, Images, MapPin } from "lucide-react";
+import { ArrowRight, Building2, Images, MapPin, Share2, Check } from "lucide-react";
 import BrandedProjectCover from "@/components/BrandedProjectCover";
 import type { Project } from "@/data/projects";
 import { statusLabels } from "@/data/projects";
@@ -13,6 +13,20 @@ export default function ProjectCard({ project, onOpen }: ProjectCardProps) {
   const hasPhotos = project.photos.length > 0;
   const [imgLoaded, setImgLoaded] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const shareProject = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const url = `${window.location.origin}/#projeler?proje=${project.id}`;
+    if (navigator.share) {
+      navigator.share({ title: project.title, url }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(url).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }).catch(() => {});
+    }
+  };
 
   return (
     <article
@@ -93,6 +107,15 @@ export default function ProjectCard({ project, onOpen }: ProjectCardProps) {
         >
           Projeyi İncele
           <ArrowRight className="h-4 w-4 text-[#d4b071] transition-transform group-hover:translate-x-1" />
+        </button>
+        <button
+          type="button"
+          onClick={shareProject}
+          className="mt-4 inline-flex items-center gap-2 text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-stone-500 transition-colors hover:text-[#d4b071]"
+          aria-label={`${project.title} projesini paylaş`}
+        >
+          {copied ? <Check className="h-3.5 w-3.5" /> : <Share2 className="h-3.5 w-3.5" />}
+          {copied ? "Link kopyalandı" : "Paylaş"}
         </button>
       </div>
     </article>

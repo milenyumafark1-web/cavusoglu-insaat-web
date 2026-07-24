@@ -18,7 +18,7 @@ export function BrandMark({ compact = false }: { compact?: boolean }) {
       aria-label="Çavuşoğlu İnşaat ana sayfa"
     >
       <img
-        src="/logo-cavusoglu-premium-light.svg"
+        src="/logo-cavusoglu.svg"
         alt="Çavuşoğlu İnşaat"
         className={
           compact ? "h-11 w-auto sm:h-12" : "h-12 w-auto sm:h-14 lg:h-16"

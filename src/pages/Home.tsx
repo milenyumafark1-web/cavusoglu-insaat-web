@@ -3,6 +3,7 @@ import {
   Building2,
   CalendarDays,
   Check,
+  Download,
   DraftingCompass,
   HardHat,
   Mail,
@@ -16,9 +17,21 @@ import { FormEvent, useEffect, useState } from "react";
 import ExperienceSection from "@/components/ExperienceSection";
 import FaqSection from "@/components/FaqSection";
 import ProjectGallery from "@/components/ProjectGallery";
+import QualityCommitment from "@/components/QualityCommitment";
 import RealApplications from "@/components/RealApplications";
 import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
+import StatsCounter from "@/components/StatsCounter";
+import Timeline from "@/components/Timeline";
+import TurkeyProjectMap from "@/components/TurkeyProjectMap";
+import TypeWriter from "@/components/TypeWriter";
+import VisionMissionValues from "@/components/VisionMissionValues";
+import ConstructionProcess from "@/components/ConstructionProcess";
+import ProjectStats from "@/components/ProjectStats";
+import MarqueeBand from "@/components/MarqueeBand";
+import useScrollReveal from "@/hooks/useScrollReveal";
+import { useActiveSection } from "@/hooks/useActiveSection";
+import { fireConfetti } from "@/lib/confetti";
 
 const services = [
   {
@@ -117,6 +130,8 @@ const contactEmails = [
 
 export default function Home() {
   const [selectedProject, setSelectedProject] = useState("");
+  const [formSubmitted, setFormSubmitted] = useState(false);
+  useScrollReveal();
 
   useEffect(() => {
     const syncContactProject = () => {
@@ -147,6 +162,23 @@ export default function Home() {
     };
   }, []);
 
+  useActiveSection();
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px) and (prefers-reduced-motion: no-preference)");
+    if (!mq.matches) return;
+    const heroImg = document.querySelector<HTMLElement>(".hero-parallax");
+    if (!heroImg) return;
+    const onScroll = () => {
+      const y = window.scrollY;
+      if (y < window.innerHeight) {
+        heroImg.style.transform = `translateY(${y * 0.15}px) scale(1.05)`;
+      }
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
@@ -167,6 +199,8 @@ export default function Home() {
       ? `Proje Talebi — ${selectedProject}`
       : `Proje Talebi — ${readValue("name")}`;
     window.location.href = `mailto:teklif@cavusogluinsaatmersin.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(details.join("\n"))}`;
+    fireConfetti();
+    setFormSubmitted(true);
   };
 
   return (
@@ -184,7 +218,9 @@ export default function Home() {
             <img
               src="/cavusoglum-hero.webp"
               alt="Akdeniz mimarisinden ilham alan çağdaş konut projesi"
-              className="h-full w-full object-cover object-[68%_center]"
+              width={1536}
+              height={1024}
+              className="h-full w-full object-cover object-[68%_center] hero-parallax scale-105"
             />
             <div className="hero-overlay absolute inset-0" />
           </div>
@@ -200,7 +236,9 @@ export default function Home() {
 
               <h1 className="reveal-up reveal-delay-1 mt-7 max-w-4xl font-display text-[3.4rem] font-medium leading-[0.94] tracking-[-0.035em] text-stone-50 sm:text-7xl lg:text-[6.5rem]">
                 Yapıya değer katan{" "}
-                <span className="italic text-[#d4b071]">uygulama gücü.</span>
+                <span className="italic text-[#d4b071]">
+                  <TypeWriter />
+                </span>
               </h1>
 
               <div className="reveal-up reveal-delay-2 mt-9 lg:max-w-3xl">
@@ -211,7 +249,7 @@ export default function Home() {
                 <div className="mt-8 flex flex-wrap gap-3">
                   <a
                     href="#projeler"
-                    className="inline-flex min-h-12 items-center gap-3 bg-[#d4b071] px-6 py-4 text-[0.68rem] font-bold tracking-[0.15em] text-stone-950 transition-colors hover:bg-[#e2c38e]"
+                    className="btn-ripple inline-flex min-h-12 items-center gap-3 bg-[#d4b071] px-6 py-4 text-[0.68rem] font-bold tracking-[0.15em] text-stone-950 transition-colors hover:bg-[#e2c38e]"
                   >
                     PROJELERİ İNCELE
                     <ArrowRight className="h-4 w-4" />
@@ -245,6 +283,10 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        <MarqueeBand />
+
+        <StatsCounter />
 
         <section id="hakkimizda" className="relative py-24 sm:py-32 lg:py-40">
           <div className="pointer-events-none absolute right-[-2rem] top-8 font-display text-[12rem] font-semibold leading-none text-stone-100 sm:text-[18rem]">
@@ -361,9 +403,15 @@ export default function Home() {
           </div>
         </section>
 
+        <VisionMissionValues />
+
         <ProjectGallery />
 
         <ExperienceSection />
+
+        <TurkeyProjectMap />
+
+        <ProjectStats />
 
         <RealApplications />
 
@@ -499,6 +547,12 @@ export default function Home() {
           </div>
         </section>
 
+        <ConstructionProcess />
+
+        <QualityCommitment />
+
+        <Timeline />
+
         <FaqSection />
 
         <section id="iletisim" className="bg-[#d8b477]">
@@ -570,9 +624,59 @@ export default function Home() {
                   </span>
                 </a>
               </div>
+              <div className="mt-5 border-t border-stone-900/15 pt-5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const vcard = [
+                      "BEGIN:VCARD",
+                      "VERSION:3.0",
+                      "FN:Çavuşoğlu İnşaat",
+                      "ORG:Çavuşoğlu İnşaat",
+                      "TEL;TYPE=WORK,VOICE:+90 538 232 04 33",
+                      "EMAIL;TYPE=INTERNET:info@cavusogluinsaatmersin.com",
+                      "EMAIL;TYPE=INTERNET:teklif@cavusogluinsaatmersin.com",
+                      "ADR;TYPE=WORK:;;50. Yıl Mah. 2589. Sok. No:31;Yenişehir;Mersin;;TR",
+                      "URL:https://cavusogluinsaatmersin.com",
+                      "END:VCARD",
+                    ].join("\n");
+                    const blob = new Blob([vcard], { type: "text/vcard" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = "cavusoglu-insaat.vcf";
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                  className="inline-flex items-center gap-3 text-[0.62rem] font-bold tracking-[0.16em] text-stone-700 transition-opacity hover:opacity-65"
+                >
+                  <Download className="h-4 w-4" />
+                  REHBERİNİZE KAYDEDIN
+                </button>
+              </div>
             </div>
 
             <div className="bg-[#f5f1e9] px-5 py-16 sm:px-10 sm:py-20 lg:px-16 lg:py-24">
+              {formSubmitted ? (
+                <div className="flex min-h-[400px] flex-col items-center justify-center text-center">
+                  <div className="flex h-16 w-16 items-center justify-center bg-[#1b1d1a]">
+                    <Check className="h-8 w-8 text-[#d4b071]" />
+                  </div>
+                  <h3 className="mt-8 font-display text-3xl font-medium text-stone-900">
+                    Talebiniz hazırlandı
+                  </h3>
+                  <p className="mt-4 max-w-sm text-sm leading-7 text-stone-600">
+                    E-posta uygulamanız açılacaktır. Bilgilerinizi içeren teklif talebini göndermek için lütfen e-postayı onaylayın.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setFormSubmitted(false)}
+                    className="mt-8 text-xs font-bold tracking-[0.16em] text-[#9b6f2e] underline underline-offset-4 transition-colors hover:text-stone-950"
+                  >
+                    YENİ TALEP OLUŞTUR
+                  </button>
+                </div>
+              ) : (
               <form onSubmit={handleSubmit} className="space-y-8">
                 <div>
                   <label htmlFor="name" className="form-label">
@@ -709,6 +813,7 @@ export default function Home() {
                   <Send className="h-5 w-5 transition-transform group-hover:translate-x-1" />
                 </button>
               </form>
+              )}
             </div>
           </div>
         </section>

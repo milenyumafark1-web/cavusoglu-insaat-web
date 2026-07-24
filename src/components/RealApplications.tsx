@@ -1,6 +1,11 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 const interiorPhotos = [
+  {
+    src: "/proje-gercek-lobi.jpg",
+    alt: "Çavuşoğlu İnşaat tarafından tamamlanan lobi uygulaması",
+    title: "Lobi Uygulaması",
+  },
   {
     src: "/proje-gercek-mutfak.jpg",
     alt: "Çavuşoğlu İnşaat tarafından tamamlanan mutfak uygulaması",
@@ -487,12 +492,71 @@ const mechanicalPhotos = [
   },
 ] as const;
 
+const teamPhoto = {
+  src: "/sahadaki-ekibimiz.jpeg",
+  alt: "Çavuşoğlu İnşaat saha ekibinin çalışma alanındaki toplu fotoğrafı",
+  title: "Sahadaki Ekibimiz",
+};
+
+const allNavigablePhotos = [
+  ...interiorPhotos.map((p) => ({ src: p.src, alt: p.alt, title: p.title })),
+  ...mechanicalPhotos.map((p) => ({ src: p.src, alt: p.alt, title: p.title })),
+  teamPhoto,
+];
+
 export default function RealApplications() {
-  const [lightbox, setLightbox] = useState<{
-    src: string;
-    alt: string;
-    title: string;
-  } | null>(null);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+
+  const openLightbox = useCallback(
+    (photo: { src: string; alt: string; title: string }) => {
+      const idx = allNavigablePhotos.findIndex((p) => p.src === photo.src);
+      setLightboxIndex(idx >= 0 ? idx : null);
+    },
+    [],
+  );
+
+  const lightbox =
+    lightboxIndex !== null ? allNavigablePhotos[lightboxIndex] : null;
+
+  const goNext = useCallback(() => {
+    setLightboxIndex((i) =>
+      i !== null ? (i + 1) % allNavigablePhotos.length : null,
+    );
+  }, []);
+
+  const goPrev = useCallback(() => {
+    setLightboxIndex((i) =>
+      i !== null
+        ? (i - 1 + allNavigablePhotos.length) % allNavigablePhotos.length
+        : null,
+    );
+  }, []);
+
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "ArrowRight") goNext();
+      else if (e.key === "ArrowLeft") goPrev();
+      else if (e.key === "Escape") setLightboxIndex(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [lightboxIndex, goNext, goPrev]);
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchStartX(e.touches[0].clientX);
+  };
+
+  const onTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX === null) return;
+    const diff = touchStartX - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) {
+      if (diff > 0) goNext();
+      else goPrev();
+    }
+    setTouchStartX(null);
+  };
 
   const allMechanical = mechanicalPhotos;
   const spotlightSources = [
@@ -534,11 +598,11 @@ export default function RealApplications() {
               <figure
                 key={photo.src}
                 className="group relative min-h-[320px] cursor-pointer overflow-hidden sm:min-h-[420px]"
-                onClick={() => setLightbox(photo)}
+                onClick={() => openLightbox(photo)}
                 onKeyDown={e => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
-                    setLightbox(photo);
+                    openLightbox(photo);
                   }
                 }}
                 tabIndex={0}
@@ -593,11 +657,11 @@ export default function RealApplications() {
               <figure
                 key={photo.src}
                 className="group grid cursor-pointer overflow-hidden border border-white/10 bg-[#11130f] md:grid-cols-[minmax(0,1.35fr)_minmax(260px,0.65fr)]"
-                onClick={() => setLightbox(photo)}
+                onClick={() => openLightbox(photo)}
                 onKeyDown={e => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
-                    setLightbox(photo);
+                    openLightbox(photo);
                   }
                 }}
                 tabIndex={0}
@@ -647,11 +711,11 @@ export default function RealApplications() {
                 <figure
                   key={photo.src}
                   className="group relative min-h-[340px] cursor-pointer overflow-hidden sm:min-h-[480px]"
-                  onClick={() => setLightbox(photo)}
+                  onClick={() => openLightbox(photo)}
                   onKeyDown={e => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      setLightbox(photo);
+                      openLightbox(photo);
                     }
                   }}
                   tabIndex={0}
@@ -690,11 +754,11 @@ export default function RealApplications() {
                       ? "md:col-span-2 md:min-h-[300px]"
                       : ""
                   }`}
-                  onClick={() => setLightbox(photo)}
+                  onClick={() => openLightbox(photo)}
                   onKeyDown={e => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      setLightbox(photo);
+                      openLightbox(photo);
                     }
                   }}
                   tabIndex={0}
@@ -728,11 +792,11 @@ export default function RealApplications() {
                 <figure
                   key={photo.src}
                   className="group relative min-h-[260px] cursor-pointer overflow-hidden sm:min-h-[320px]"
-                  onClick={() => setLightbox(photo)}
+                  onClick={() => openLightbox(photo)}
                   onKeyDown={e => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      setLightbox(photo);
+                      openLightbox(photo);
                     }
                   }}
                   tabIndex={0}
@@ -760,21 +824,11 @@ export default function RealApplications() {
 
           <figure
             className="group relative mt-16 cursor-pointer overflow-hidden border border-white/10 bg-[#11130f] sm:mt-20"
-            onClick={() =>
-              setLightbox({
-                src: "/sahadaki-ekibimiz.jpeg",
-                alt: "Çavuşoğlu İnşaat saha ekibinin çalışma alanındaki toplu fotoğrafı",
-                title: "Sahadaki Ekibimiz",
-              })
-            }
+            onClick={() => openLightbox(teamPhoto)}
             onKeyDown={e => {
               if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
-                setLightbox({
-                  src: "/sahadaki-ekibimiz.jpeg",
-                  alt: "Çavuşoğlu İnşaat saha ekibinin çalışma alanındaki toplu fotoğrafı",
-                  title: "Sahadaki Ekibimiz",
-                });
+                openLightbox(teamPhoto);
               }
             }}
             tabIndex={0}
@@ -810,39 +864,79 @@ export default function RealApplications() {
             </p>
           </div>
         </div>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "ImageGallery",
+              "name": "Çavuşoğlu İnşaat Proje Fotoğrafları",
+              "description": "Mekanik tesisat, yangın söndürme, kazan dairesi ve inşaat uygulama fotoğrafları",
+              "numberOfItems": mechanicalPhotos.length + interiorPhotos.length,
+              "publisher": {
+                "@type": "Organization",
+                "name": "Çavuşoğlu İnşaat",
+                "url": "https://cavusogluinsaatmersin.com"
+              }
+            }),
+          }}
+        />
       </section>
 
       {/* Lightbox */}
       {lightbox ? (
         <div
           className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm"
-          onClick={() => setLightbox(null)}
-          onKeyDown={e => {
-            if (e.key === "Escape") setLightbox(null);
-          }}
+          onClick={() => setLightboxIndex(null)}
           role="dialog"
           aria-modal="true"
           aria-label={lightbox.title}
         >
           <button
-            onClick={() => setLightbox(null)}
+            onClick={() => setLightboxIndex(null)}
             className="absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center text-2xl text-white/70 transition-colors hover:text-white"
             aria-label="Kapat"
           >
             &times;
           </button>
+
+          {/* Prev button */}
+          <button
+            onClick={(e) => { e.stopPropagation(); goPrev(); }}
+            className="absolute left-3 top-1/2 z-10 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-xl text-white/70 transition-colors hover:bg-black/80 hover:text-white sm:left-6"
+            aria-label="Önceki fotoğraf"
+          >
+            &#8249;
+          </button>
+
+          {/* Next button */}
+          <button
+            onClick={(e) => { e.stopPropagation(); goNext(); }}
+            className="absolute right-3 top-1/2 z-10 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-xl text-white/70 transition-colors hover:bg-black/80 hover:text-white sm:right-6"
+            aria-label="Sonraki fotoğraf"
+          >
+            &#8250;
+          </button>
+
           <div
             className="relative max-h-[85vh] max-w-5xl"
             onClick={e => e.stopPropagation()}
+            onTouchStart={onTouchStart}
+            onTouchEnd={onTouchEnd}
           >
             <img
               src={lightbox.src}
               alt={lightbox.alt}
               className="max-h-[80vh] w-auto object-contain"
             />
-            <p className="mt-3 text-center text-sm text-stone-300">
-              {lightbox.title}
-            </p>
+            <div className="mt-3 flex items-center justify-between gap-4 px-1">
+              <p className="text-sm text-stone-300">
+                {lightbox.title}
+              </p>
+              <span className="shrink-0 text-xs font-semibold tabular-nums text-stone-500">
+                {lightboxIndex! + 1} / {allNavigablePhotos.length}
+              </span>
+            </div>
           </div>
         </div>
       ) : null}

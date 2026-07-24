@@ -2,39 +2,51 @@
 <html lang="tr">
   <head>
     <meta charset="UTF-8" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
+    <link rel="preload" as="image" href="/cavusoglum-hero.webp" type="image/webp" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="Çavuşoğlu İnşaat Mersin; Mehmet Çankara tarafından 2015 yılında kurulan, Mezitli ve Mersin'de konut, villa, tadilat ve anahtar teslim inşaat projeleri geliştiren yapı firmasıdır."
+      content="Çavuşoğlu İnşaat Mersin — Konut, kamu, eğitim ve sağlık yapılarından mekanik tesisat, izolasyon ve renovasyona uzanan Türkiye genelinde uygulama deneyimi. 2015'ten bu yana Mehmet Çankara liderliğinde."
     />
     <meta name="theme-color" content="#181a17" />
     <meta
       property="og:title"
-      content="Çavuşoğlu İnşaat Mersin | Konut ve Villa Projeleri"
+      content="Çavuşoğlu İnşaat | Mersin Merkezli Yapım ve Uygulama"
     />
     <meta
       property="og:description"
-      content="Güven, estetik ve sağlamlıkla geleceğe değer katan yapılar."
+      content="Konut, kamu, eğitim, sağlık yapıları, mekanik tesisat ve renovasyon alanlarında Türkiye genelinde proje deneyimi."
     />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="tr_TR" />
     <meta property="og:url" content="https://cavusogluinsaatmersin.com/" />
     <meta
       property="og:image"
-      content="https://cavusogluinsaatmersin.com/cavusoglum-hero.webp"
+      content="https://cavusogluinsaatmersin.com/og-image.jpg"
     />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="624" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="robots" content="index, follow" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' ws: wss:;" />
     <link rel="canonical" href="https://cavusogluinsaatmersin.com/" />
-    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-    <title>Çavuşoğlu İnşaat Mersin | Konut ve Villa Projeleri</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
+    <title>Çavuşoğlu İnşaat | Mersin Merkezli Yapım ve Uygulama</title>
+    <link rel="manifest" href="/site.webmanifest" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@type": "GeneralContractor",
         "name": "Çavuşoğlu İnşaat",
         "alternateName": "Çavuşoğlu İnşaat Mersin",
-        "description": "Mersin ve Mezitli'de konut, villa, tadilat ve anahtar teslim inşaat projeleri geliştiren yapı firması.",
+        "description": "Konut, kamu, eğitim ve sağlık yapılarından mekanik tesisat, izolasyon ve renovasyona uzanan Türkiye genelinde uygulama deneyimi.",
         "founder": {
           "@type": "Person",
           "name": "Mehmet Çankara"
@@ -52,22 +64,102 @@
           "addressRegion": "Mersin",
           "addressCountry": "TR"
         },
-        "areaServed": {
-          "@type": "AdministrativeArea",
-          "name": "Mersin ve Mezitli"
-        },
+        "areaServed": [
+          { "@type": "AdministrativeArea", "name": "Mersin" },
+          { "@type": "AdministrativeArea", "name": "Adana" },
+          { "@type": "AdministrativeArea", "name": "Düzce" },
+          { "@type": "AdministrativeArea", "name": "Çanakkale" },
+          { "@type": "AdministrativeArea", "name": "Diyarbakır" },
+          { "@type": "AdministrativeArea", "name": "Amasya" },
+          { "@type": "AdministrativeArea", "name": "Malatya" },
+          { "@type": "AdministrativeArea", "name": "İstanbul" },
+          { "@type": "AdministrativeArea", "name": "Tekirdağ" },
+          { "@type": "AdministrativeArea", "name": "Kastamonu" }
+        ],
         "knowsAbout": [
           "Konut projeleri",
           "Villa projeleri",
           "Anahtar teslim inşaat",
-          "Tadilat ve yenileme"
+          "Renovasyon ve onarım",
+          "Mekanik tesisat ve izolasyon",
+          "Kamu, eğitim ve sağlık yapıları",
+          "Yapı malzemesi temini"
         ],
-        "sameAs": ["https://www.instagram.com/cavusogluinsaatmersin/"]
+        "sameAs": ["https://www.instagram.com/cavusogluinsaatmersin/"],
+        "openingHoursSpecification": {
+          "@type": "OpeningHoursSpecification",
+          "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday"],
+          "opens": "08:30",
+          "closes": "18:00"
+        }
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Hangi inşaat hizmetlerini sunuyorsunuz?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Konut ve villa projeleri, anahtar teslim yapım, renovasyon ve onarım, mekanik tesisat, izolasyon, kamu yapısı uygulamaları ve yapı malzemesi temini alanlarında çalışıyoruz."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Yeni bir proje süreci nasıl başlıyor?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Önce proje türünü, konumu, yaklaşık büyüklüğü ve beklentilerinizi dinliyoruz. Ardından teknik koşulları değerlendirerek planlama ve teklif sürecinin çerçevesini oluşturuyoruz."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Teklif talebini nasıl iletebilirim?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Sayfanın iletişim bölümündeki kısa formu doldurabilirsiniz. Bilgileriniz düzenli bir özet hâlinde hazırlanır ve kurumsal teklif e-posta adresimize iletilir."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Projenin teslim süresi ne zaman belli olur?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Teslim süresi; proje türü, uygulama alanı, teknik gereksinimler ve iş programına göre değişir. Gerçekçi zaman planı, ihtiyaç ve saha değerlendirmesinin ardından proje özelinde paylaşılır."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Hangi bölgelerde hizmet veriyorsunuz?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Mersin merkezli çalışıyoruz. Portföyümüzde Mersin'in yanı sıra Diyarbakır, Adana, Çanakkale, Düzce, Kastamonu, İstanbul, Tekirdağ, Malatya ve Amasya'da gerçekleştirilen işler bulunmaktadır."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Tadilat ve yenileme işi için de görüşebilir miyiz?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Evet. Mevcut yapının ihtiyaçlarını, kullanım hedefini ve uygulama koşullarını birlikte değerlendirerek uygun yenileme kapsamını belirliyoruz."
+            }
+          }
+        ]
       }
     </script>
     <script type="module" src="/src/main.tsx"></script>
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch(() => {});
+        });
+      }
+    </script>
   </body>
 </html>
