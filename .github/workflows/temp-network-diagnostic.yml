@@ -1,0 +1,78 @@
+name: Temporary network diagnostic
+
+on:
+  push:
+    branches:
+      - temp/network-diagnostic-20260726
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Probe server ports and HTTP endpoints
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          import json
+          import socket
+          import ssl
+          import urllib.error
+          import urllib.request
+
+          host = "162.55.51.178"
+          ports = [22, 80, 443, 8000, 4001]
+          result = {"host": host, "ports": {}, "http": {}}
+
+          for port in ports:
+              try:
+                  with socket.create_connection((host, port), timeout=8):
+                      result["ports"][str(port)] = "open"
+              except ConnectionRefusedError:
+                  result["ports"][str(port)] = "refused"
+              except TimeoutError:
+                  result["ports"][str(port)] = "timeout_or_filtered"
+              except OSError as exc:
+                  result["ports"][str(port)] = f"error:{type(exc).__name__}:{exc}"
+
+          for url in [
+              f"http://{host}/",
+              f"https://{host}/",
+              f"http://{host}:8000/",
+              f"http://{host}:4001/api/health",
+          ]:
+              try:
+                  context = ssl._create_unverified_context() if url.startswith("https://") else None
+                  request = urllib.request.Request(url, method="GET", headers={"User-Agent": "deployment-diagnostic/1.0"})
+                  with urllib.request.urlopen(request, timeout=12, context=context) as response:
+                      result["http"][url] = {
+                          "status": response.status,
+                          "final_url": response.geturl(),
+                          "server": response.headers.get("server"),
+                          "location": response.headers.get("location"),
+                      }
+              except urllib.error.HTTPError as exc:
+                  result["http"][url] = {
+                      "status": exc.code,
+                      "final_url": exc.geturl(),
+                      "server": exc.headers.get("server") if exc.headers else None,
+                      "location": exc.headers.get("location") if exc.headers else None,
+                  }
+              except Exception as exc:
+                  result["http"][url] = f"error:{type(exc).__name__}:{exc}"
+
+          print(json.dumps(result, indent=2, ensure_ascii=False))
+          PY
+
+      - name: Query public IP intelligence
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          curl --fail --silent --show-error --max-time 30 \
+            https://api.check-host.cc/ip/162.55.51.178 \
+            | python3 -c 'import json,sys; p=json.load(sys.stdin); d=p.get("data") or {}; keep={"success":p.get("success"),"ip":p.get("ip"),"ptr":d.get("ptr"),"open_ports":d.get("open_ports"),"tls_certs":d.get("tls_certs"),"domains":d.get("domains"),"tech_stack":d.get("tech_stack")}; print(json.dumps(keep,indent=2,ensure_ascii=False))'
