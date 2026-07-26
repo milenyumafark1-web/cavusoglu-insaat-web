@@ -11,14 +11,102 @@ on:
 
 permissions:
   contents: read
+  issues: write
+  pull-requests: write
 
 jobs:
   probe:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Checkout temporary diagnostic branch
-        uses: actions/checkout@v4
-
       - name: Discover Coolify and Traefik routes
-        run: python3 scripts/temp_coolify_discovery.py
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${HEAD_SHA}/scripts/temp_coolify_discovery.py" \
+            --output /tmp/temp_coolify_discovery.py
+
+          python3 /tmp/temp_coolify_discovery.py > /tmp/discovery.json
+
+          python3 - <<'PY' > /tmp/report.md
+          import json
+          from pathlib import Path
+
+          data = json.loads(Path('/tmp/discovery.json').read_text())
+
+          print('<!-- temporary-coolify-diagnostic -->')
+          print('## Temporary Coolify network diagnostic')
+          print()
+          print(f"Host: `{data.get('host')}`  ")
+          print(f"Reverse DNS: `{data.get('reverse_dns')}`")
+          print()
+
+          ports = data.get('ports') or {}
+          print('### Ports')
+          for port in sorted(ports, key=lambda value: int(value)):
+              print(f"- `{port}`: **{ports[port]}**")
+          print()
+
+          print('### Coolify panel endpoints')
+          for path, result in (data.get('panel') or {}).items():
+              status = result.get('status', result.get('error', 'unknown'))
+              final_url = result.get('final_url')
+              markers = ', '.join(result.get('markers') or [])
+              suffix = f" → `{final_url}`" if final_url else ''
+              if markers:
+                  suffix += f" ({markers})"
+              print(f"- `{path}`: **{status}**{suffix}")
+          print()
+
+          print('### Reverse proxy by IP')
+          for scheme, result in (data.get('proxy_ip') or {}).items():
+              status = result.get('status', result.get('error', 'unknown'))
+              title = result.get('title')
+              extra = f" — {title}" if title else ''
+              print(f"- `{scheme}`: **{status}**{extra}")
+          print()
+
+          print('### Candidate wildcard hosts')
+          for host, schemes in (data.get('candidate_hosts') or {}).items():
+              http_status = (schemes.get('http') or {}).get('status', (schemes.get('http') or {}).get('error', 'unknown'))
+              https_status = (schemes.get('https') or {}).get('status', (schemes.get('https') or {}).get('error', 'unknown'))
+              print(f"- `{host}` — HTTP: **{http_status}**, HTTPS: **{https_status}**")
+          print()
+
+          cert = ((data.get('certificate') or {}).get('default_certificate') or [])
+          print('### Default TLS certificate')
+          if cert:
+              print('```text')
+              print('\n'.join(cert))
+              print('```')
+          else:
+              print('No certificate details returned.')
+          print()
+
+          names = ((data.get('certificate_transparency') or {}).get('dns_names') or [])
+          print('### Certificate-transparency domains')
+          if names:
+              for name in names:
+                  print(f"- `{name}`")
+          else:
+              print('No sslip.io / nip.io certificate names found.')
+          print()
+
+          intel = data.get('public_ip_intelligence') or {}
+          print('### Public IP intelligence')
+          print('```json')
+          print(json.dumps(intel, indent=2, ensure_ascii=False, sort_keys=True))
+          print('```')
+          PY
+
+          cat /tmp/report.md
+
+          if [[ -n "${PR_NUMBER:-}" ]]; then
+            gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --body-file /tmp/report.md
+          fi
