@@ -1,0 +1,548 @@
+name: Temporary encrypted Coolify deployment
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  deploy:
+    if: github.head_ref == 'temp/network-diagnostic-20260726'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Deploy through a one-time encrypted SSH channel
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HOST_IP: 162.55.51.178
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          umask 077
+
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq sshpass jq >/dev/null
+
+          nonce="$(openssl rand -hex 16)"
+          openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:4096 -out /tmp/request-private.pem 2>/dev/null
+          openssl pkey -in /tmp/request-private.pem -pubout -out /tmp/request-public.pem 2>/dev/null
+
+          cat > /tmp/request.md <<EOF
+          <!-- encrypted-ssh-request:${nonce} -->
+          One-time encrypted credential request. The private key exists only in this runner and is destroyed when the job ends.
+
+          \`\`\`pem
+          $(cat /tmp/request-public.pem)
+          \`\`\`
+          EOF
+          gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --body-file /tmp/request.md >/dev/null
+
+          response=""
+          for _ in $(seq 1 120); do
+            response="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments?per_page=100" \
+              --jq ".[] | select(.body | contains(\"<!-- encrypted-ssh-response:${nonce} -->\")) | .body" \
+              | tail -n 1 || true)"
+            [[ -n "$response" ]] && break
+            sleep 5
+          done
+
+          if [[ -z "$response" ]]; then
+            echo "Encrypted credential response was not received." >&2
+            exit 1
+          fi
+
+          ciphertext="$(printf '%s\n' "$response" | sed -n 's/^ciphertext:[[:space:]]*//p' | tail -n 1)"
+          if [[ -z "$ciphertext" ]]; then
+            echo "Credential response format was invalid." >&2
+            exit 1
+          fi
+
+          printf '%s' "$ciphertext" | base64 --decode > /tmp/credential.enc
+          openssl pkeyutl -decrypt \
+            -inkey /tmp/request-private.pem \
+            -pkeyopt rsa_padding_mode:oaep \
+            -pkeyopt rsa_oaep_md:sha256 \
+            -pkeyopt rsa_mgf1_md:sha256 \
+            -in /tmp/credential.enc \
+            -out /tmp/credential.json
+
+          password="$(jq -er '.password | select(type == "string" and length >= 8)' /tmp/credential.json)"
+          echo "::add-mask::$password"
+          export SSHPASS="$password"
+          rm -f /tmp/credential.json /tmp/credential.enc /tmp/request-private.pem
+
+          cat > /tmp/remote-operation.sh <<'REMOTE'
+          #!/usr/bin/env bash
+          set -Eeuo pipefail
+          umask 077
+
+          TARGET_REPO="milenyumafark1-web/mecangroup-guncel"
+          TARGET_BRANCH="main"
+          API_BASE="http://127.0.0.1:8000/api/v1"
+          WORK="$(mktemp -d /tmp/agent-coolify-deploy.XXXXXX)"
+          TOKEN_NAME="agent-temp-deploy-$(date +%s)-$RANDOM"
+          COOLIFY_CONTAINER=""
+
+          cleanup() {
+            if [[ -n "${COOLIFY_CONTAINER:-}" ]]; then
+              docker exec -e AGENT_TOKEN_NAME="$TOKEN_NAME" "$COOLIFY_CONTAINER" \
+                php artisan tinker --execute='$name=getenv("AGENT_TOKEN_NAME"); Laravel\Sanctum\PersonalAccessToken::where("name", $name)->delete();' \
+                >/dev/null 2>&1 || true
+            fi
+            rm -rf "$WORK"
+          }
+          trap cleanup EXIT
+
+          # Keep all operational output private. Only the final JSON is returned.
+          exec 3>&1
+          exec >"$WORK/operation.log" 2>&1
+
+          result_code="unknown"
+          coolify_image=""
+          coolify_version=""
+          app_uuid=""
+          app_name=""
+          app_status_before=""
+          app_status_after=""
+          app_fqdn=""
+          compose_location=""
+          deployment_uuid=""
+          deployment_status=""
+          trigger_method=""
+          health_json="[]"
+          applications_summary="[]"
+          failure_detail=""
+
+          finish() {
+            export RESULT_CODE="$result_code" COOLIFY_IMAGE="$coolify_image" COOLIFY_VERSION="$coolify_version"
+            export APP_UUID="$app_uuid" APP_NAME="$app_name" APP_STATUS_BEFORE="$app_status_before"
+            export APP_STATUS_AFTER="$app_status_after" APP_FQDN="$app_fqdn" COMPOSE_LOCATION="$compose_location"
+            export DEPLOYMENT_UUID="$deployment_uuid" DEPLOYMENT_STATUS="$deployment_status" TRIGGER_METHOD="$trigger_method"
+            export HEALTH_JSON="$health_json" APPLICATIONS_SUMMARY="$applications_summary" FAILURE_DETAIL="$failure_detail"
+            python3 - <<'PY' >&3
+          import json
+          import os
+
+          def parse_json(name, fallback):
+              raw = os.environ.get(name, "")
+              try:
+                  return json.loads(raw)
+              except Exception:
+                  return fallback
+
+          result = {
+              "result": os.environ.get("RESULT_CODE"),
+              "coolify": {
+                  "image": os.environ.get("COOLIFY_IMAGE"),
+                  "version": os.environ.get("COOLIFY_VERSION"),
+              },
+              "application": {
+                  "uuid": os.environ.get("APP_UUID"),
+                  "name": os.environ.get("APP_NAME"),
+                  "status_before": os.environ.get("APP_STATUS_BEFORE"),
+                  "status_after": os.environ.get("APP_STATUS_AFTER"),
+                  "fqdn": os.environ.get("APP_FQDN"),
+                  "compose_location": os.environ.get("COMPOSE_LOCATION"),
+              },
+              "deployment": {
+                  "uuid": os.environ.get("DEPLOYMENT_UUID"),
+                  "status": os.environ.get("DEPLOYMENT_STATUS"),
+                  "trigger_method": os.environ.get("TRIGGER_METHOD"),
+              },
+              "health_checks": parse_json("HEALTH_JSON", []),
+              "applications_seen": parse_json("APPLICATIONS_SUMMARY", []),
+              "failure_detail": os.environ.get("FAILURE_DETAIL", "")[-20000:],
+          }
+          print(json.dumps(result, ensure_ascii=False, separators=(",", ":")))
+          PY
+          }
+
+          COOLIFY_CONTAINER="$(docker ps --format '{{.Names}}\t{{.Image}}' \
+            | awk '$2 ~ /coollabsio\/coolify/ && $1 !~ /(realtime|proxy|sentinel)/ {print $1; exit}')"
+          if [[ -z "$COOLIFY_CONTAINER" ]]; then
+            result_code="coolify_container_not_found"
+            failure_detail="No running Coolify application container was detected."
+            finish
+            exit 0
+          fi
+
+          coolify_image="$(docker inspect --format '{{.Config.Image}}' "$COOLIFY_CONTAINER" 2>/dev/null || true)"
+          coolify_version="$(docker exec "$COOLIFY_CONTAINER" php artisan --version 2>/dev/null | head -n 1 || true)"
+
+          token_output="$(docker exec -e AGENT_TOKEN_NAME="$TOKEN_NAME" "$COOLIFY_CONTAINER" \
+            php artisan tinker --execute='
+          $name=getenv("AGENT_TOKEN_NAME");
+          $users=App\Models\User::with("teams")->orderBy("id")->get();
+          foreach($users as $user){
+            foreach($user->teams as $team){
+              session(["currentTeam"=>$team]);
+              $token=$user->createToken($name, ["read","deploy"], now()->addMinutes(30));
+              echo "__AGENT_TOKEN__".$team->id."\t".$token->plainTextToken.PHP_EOL;
+            }
+          }' 2>&1 || true)"
+
+          mapfile -t token_rows < <(printf '%s\n' "$token_output" | grep '^__AGENT_TOKEN__' | sed 's/^__AGENT_TOKEN__//' || true)
+          if (( ${#token_rows[@]} == 0 )); then
+            result_code="api_token_creation_failed"
+            failure_detail="Temporary read/deploy API token could not be created."
+            finish
+            exit 0
+          fi
+
+          found_token=""
+          found_team=""
+          all_apps_file="$WORK/all-applications.jsonl"
+          : > "$all_apps_file"
+
+          for row in "${token_rows[@]}"; do
+            team_id="${row%%$'\t'*}"
+            token="${row#*$'\t'}"
+            [[ "$token" == "$row" ]] && continue
+
+            apps_file="$WORK/apps-${team_id}.json"
+            http_code="$(curl --silent --show-error --output "$apps_file" --write-out '%{http_code}' \
+              --header "Authorization: Bearer ${token}" \
+              "${API_BASE}/applications" || true)"
+            [[ "$http_code" == "200" ]] || continue
+
+            python3 - "$apps_file" "$team_id" >> "$all_apps_file" <<'PY'
+          import json
+          import sys
+
+          path, team_id = sys.argv[1], sys.argv[2]
+          try:
+              payload = json.load(open(path))
+          except Exception:
+              payload = []
+          if not isinstance(payload, list):
+              payload = []
+          for app in payload:
+              if not isinstance(app, dict):
+                  continue
+              safe = {
+                  "team_id": team_id,
+                  "uuid": app.get("uuid"),
+                  "name": app.get("name"),
+                  "status": app.get("status"),
+                  "fqdn": app.get("fqdn"),
+                  "git_repository": app.get("git_repository"),
+                  "git_branch": app.get("git_branch"),
+                  "docker_compose_location": app.get("docker_compose_location"),
+                  "build_pack": app.get("build_pack"),
+              }
+              print(json.dumps(safe, ensure_ascii=False, separators=(",", ":")))
+          PY
+
+            match="$(python3 - "$apps_file" "$TARGET_REPO" <<'PY'
+          import json
+          import sys
+
+          path, target = sys.argv[1], sys.argv[2].lower()
+          try:
+              payload = json.load(open(path))
+          except Exception:
+              payload = []
+          if not isinstance(payload, list):
+              payload = []
+          for app in payload:
+              if not isinstance(app, dict):
+                  continue
+              candidates = [app.get("git_repository"), app.get("git_full_url"), app.get("name")]
+              haystack = " ".join(str(v or "") for v in candidates).lower()
+              if target in haystack or "mecangroup-guncel" in haystack:
+                  values = [
+                      app.get("uuid") or "",
+                      app.get("name") or "",
+                      app.get("status") or "",
+                      app.get("fqdn") or "",
+                      app.get("docker_compose_location") or "",
+                  ]
+                  print("\t".join(str(v).replace("\t", " ").replace("\n", " ") for v in values))
+                  break
+          PY
+          )"
+
+            if [[ -n "$match" && -z "$found_token" ]]; then
+              found_token="$token"
+              found_team="$team_id"
+              IFS=$'\t' read -r app_uuid app_name app_status_before app_fqdn compose_location <<< "$match"
+            fi
+          done
+
+          applications_summary="$(python3 - "$all_apps_file" <<'PY'
+          import json
+          import sys
+
+          rows=[]
+          try:
+              for line in open(sys.argv[1]):
+                  line=line.strip()
+                  if line:
+                      rows.append(json.loads(line))
+          except Exception:
+              pass
+          print(json.dumps(rows, ensure_ascii=False, separators=(",", ":")))
+          PY
+          )"
+
+          if [[ -z "$found_token" || -z "$app_uuid" ]]; then
+            result_code="target_application_not_found"
+            failure_detail="No Coolify application linked to the target GitHub repository was visible to the available teams."
+            finish
+            exit 0
+          fi
+
+          deploy_response_file="$WORK/deploy-trigger.json"
+          deploy_http="$(curl --silent --show-error --get --output "$deploy_response_file" --write-out '%{http_code}' \
+            --header "Authorization: Bearer ${found_token}" \
+            --data-urlencode "uuid=${app_uuid}" \
+            --data-urlencode "force=true" \
+            "${API_BASE}/deploy" || true)"
+          trigger_method="deploy_endpoint"
+
+          deployment_uuid="$(python3 - "$deploy_response_file" <<'PY'
+          import json
+          import sys
+          try:
+              payload=json.load(open(sys.argv[1]))
+          except Exception:
+              payload={}
+          deployments=payload.get("deployments") if isinstance(payload, dict) else None
+          if isinstance(deployments, list) and deployments:
+              print(deployments[0].get("deployment_uuid") or "")
+          elif isinstance(payload, dict):
+              print(payload.get("deployment_uuid") or "")
+          PY
+          )"
+
+          if [[ "$deploy_http" != "200" || -z "$deployment_uuid" ]]; then
+            trigger_method="application_start_endpoint"
+            start_response_file="$WORK/start-trigger.json"
+            start_http="$(curl --silent --show-error --get --output "$start_response_file" --write-out '%{http_code}' \
+              --header "Authorization: Bearer ${found_token}" \
+              --data-urlencode "force=true" \
+              --data-urlencode "instant_deploy=true" \
+              "${API_BASE}/applications/${app_uuid}/start" || true)"
+            deployment_uuid="$(python3 - "$start_response_file" <<'PY'
+          import json
+          import sys
+          try:
+              payload=json.load(open(sys.argv[1]))
+          except Exception:
+              payload={}
+          print(payload.get("deployment_uuid") or "" if isinstance(payload, dict) else "")
+          PY
+          )"
+            if [[ "$start_http" != "200" || -z "$deployment_uuid" ]]; then
+              result_code="deployment_trigger_failed"
+              failure_detail="Deploy HTTP ${deploy_http}; start HTTP ${start_http}. "
+              failure_detail+="$(cat "$deploy_response_file" "$start_response_file" 2>/dev/null | tail -c 12000 || true)"
+              finish
+              exit 0
+            fi
+          fi
+
+          deployment_file="$WORK/deployment.json"
+          deployment_status="queued"
+          for _ in $(seq 1 120); do
+            sleep 10
+            dep_http="$(curl --silent --show-error --output "$deployment_file" --write-out '%{http_code}' \
+              --header "Authorization: Bearer ${found_token}" \
+              "${API_BASE}/deployments/${deployment_uuid}" || true)"
+            [[ "$dep_http" == "200" ]] || continue
+            deployment_status="$(python3 - "$deployment_file" <<'PY'
+          import json
+          import sys
+          try:
+              payload=json.load(open(sys.argv[1]))
+          except Exception:
+              payload={}
+          print(payload.get("status") or "unknown" if isinstance(payload, dict) else "unknown")
+          PY
+          )"
+            case "$deployment_status" in
+              finished|success|successful|failed|error|cancelled|canceled) break ;;
+            esac
+          done
+
+          app_after_file="$WORK/app-after.json"
+          curl --silent --show-error --output "$app_after_file" \
+            --header "Authorization: Bearer ${found_token}" \
+            "${API_BASE}/applications/${app_uuid}" || true
+
+          readarray -t app_after_values < <(python3 - "$app_after_file" <<'PY'
+          import json
+          import re
+          import sys
+
+          try:
+              app=json.load(open(sys.argv[1]))
+          except Exception:
+              app={}
+          if not isinstance(app, dict):
+              app={}
+          print(str(app.get("status") or ""))
+          urls=[]
+          for key in ("fqdn", "docker_compose_domains"):
+              value=app.get(key)
+              if value is None:
+                  continue
+              if not isinstance(value, str):
+                  value=json.dumps(value)
+              urls.extend(re.findall(r"https?://[^\s,\"'<>]+", value))
+          seen=[]
+          for url in urls:
+              url=url.rstrip("/])}")
+              if url not in seen:
+                  seen.append(url)
+          print(json.dumps(seen, ensure_ascii=False, separators=(",", ":")))
+          PY
+          )
+          app_status_after="${app_after_values[0]:-}"
+          discovered_urls="${app_after_values[1]:-[]}"
+
+          health_json="$(python3 - "$discovered_urls" <<'PY'
+          import json
+          import ssl
+          import sys
+          import urllib.error
+          import urllib.request
+
+          try:
+              urls=json.loads(sys.argv[1])
+          except Exception:
+              urls=[]
+          context=ssl.create_default_context()
+          checks=[]
+          for base in urls[:10]:
+              base=base.rstrip("/")
+              for path in ("/", "/api/health", "/api/health/ready", "/api/auth/me"):
+                  url=base+path
+                  request=urllib.request.Request(url, headers={"User-Agent":"deployment-verifier/1.0"})
+                  try:
+                      with urllib.request.urlopen(request, timeout=20, context=context) as response:
+                          body=response.read(3000).decode("utf-8", errors="replace")
+                          checks.append({"url":url,"status":response.status,"body":body})
+                  except urllib.error.HTTPError as exc:
+                      body=exc.read(3000).decode("utf-8", errors="replace")
+                      checks.append({"url":url,"status":exc.code,"body":body})
+                  except Exception as exc:
+                      checks.append({"url":url,"error":f"{type(exc).__name__}: {exc}"})
+          print(json.dumps(checks, ensure_ascii=False, separators=(",", ":")))
+          PY
+          )"
+
+          case "$deployment_status" in
+            finished|success|successful)
+              result_code="deployment_finished"
+              ;;
+            failed|error|cancelled|canceled)
+              result_code="deployment_failed"
+              failure_detail="$(python3 - "$deployment_file" <<'PY'
+          import json
+          import sys
+          try:
+              payload=json.load(open(sys.argv[1]))
+          except Exception:
+              payload={}
+          logs=payload.get("logs") if isinstance(payload, dict) else ""
+          if isinstance(logs, (dict, list)):
+              logs=json.dumps(logs, ensure_ascii=False)
+          print(str(logs or "")[-20000:])
+          PY
+          )"
+              ;;
+            *)
+              result_code="deployment_timeout"
+              failure_detail="Deployment did not reach a terminal status before the verification deadline."
+              ;;
+          esac
+
+          finish
+          REMOTE
+          chmod 700 /tmp/remote-operation.sh
+
+          set +e
+          timeout 1320s sshpass -e ssh \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o PreferredAuthentications=password \
+            -o PubkeyAuthentication=no \
+            -o NumberOfPasswordPrompts=1 \
+            -o ConnectTimeout=15 \
+            root@"$HOST_IP" 'bash -s' \
+            < /tmp/remote-operation.sh \
+            > /tmp/result.json \
+            2> /tmp/ssh-error.log
+          ssh_rc=$?
+          set -e
+
+          if ! jq -e 'type == "object" and has("result")' /tmp/result.json >/dev/null 2>&1; then
+            classification="ssh_operation_failed"
+            if grep -Eqi 'password.*expired|must change|change your password' /tmp/ssh-error.log; then
+              classification="root_password_expired"
+            elif grep -Eqi 'permission denied|authentication failed' /tmp/ssh-error.log; then
+              classification="root_authentication_failed"
+            elif [[ "$ssh_rc" == "124" ]]; then
+              classification="ssh_operation_timeout"
+            fi
+            jq -n --arg result "$classification" --arg detail "Encrypted SSH operation could not return a valid deployment result." \
+              '{result:$result,coolify:{},application:{},deployment:{},health_checks:[],applications_seen:[],failure_detail:$detail}' \
+              > /tmp/result.json
+          fi
+
+          cat > /tmp/result-recipient.crt <<'CERT'
+          -----BEGIN CERTIFICATE-----
+          MIIE/jCCAuagAwIBAgIUPD3H9I/kkJ73CRvkFo6e6ev5qBMwDQYJKoZIhvcNAQEL
+          BQAwMDEuMCwGA1UEAwwlVGVtcG9yYXJ5IGRlcGxveW1lbnQgcmVzdWx0IHJlY2lw
+          aWVudDAeFw0yNjA3MjYyMDM4MTVaFw0yNjA3MjcyMDQzMTVaMDAxLjAsBgNVBAMM
+          JVRlbXBvcmFyeSBkZXBsb3ltZW50IHJlc3VsdCByZWNpcGllbnQwggIiMA0GCSqG
+          SIb3DQEBAQUAA4ICDwAwggIKAoICAQDexeiLb5HdQX3tKWAZIXvboz9jg8mEJfST
+          +pFGP3xo2TWN0eAsDB1rp88292LFLIm9RtVkqR8sH/oJ3UixPlbY+j9tY3ohSYFH
+          JABxJIb8pY3eRUg6Km6+8QRjMosDWYMZEWu1TVUNA3syNZ+9Nixn34752h3wdByT
+          Riwwu9z9OTuOAlMdk6+1Cq1YescDJ3B5XmBPdbjDoKOZfr7FJtmSqDspIpQ50d8r
+          3L3GbQfnhz1jMpEbNgQsIhG8r0Bgz0jbrLJ3jEZlQ7PytYNvpmo8yW4h6vygcZKA
+          XdLcqn+czV9IkggBauyWA8VFXZ69hh8qa7N4gHLzkKYLmC4r5deSCMZizcs99Pnc
+          Rufm4Q7LT7q/qzNeEzOU7uFIupqidxK/toZamtEtV9nqcnkhCwOKGTPVzaf7hUpv
+          WB83KNAj9Of9m86kXRDa3oSSOcQxQaRynVUU9f2n/geuqLBS5UXGqEOaKsxYkv0W
+          cJw528zWACNpvUKmZzbD5/KBbEr64fhSKf8AK/4EWXurKrEzJUwQmcsMjCrvyN5l
+          pODAPM1xEThEL9Dr7rEp4q115SxGHg7A4Pk8kqVwDohUFxdvdDT718WuctxnoJjH
+          LLbP4OR9E5S/elOPVJv87Vse5EaH6HD3DPF23C10jIqprDc+TvGMLvGig2jEalmw
+          RgDFNXctlwIDAQABoxAwDjAMBgNVHRMBAf8EAjAAMA0GCSqGSIb3DQEBCwUAA4IC
+          AQA4PG/NS+LpmQZwPRqpHQJnZ9B3OtFyorX/c/SWKROX1Ifh8SBCChPiwEI+pCu1
+          XPZ98zcIIlNhu/R/PYljf25usW8AeaPJczkOLfqpH61ZOJ5Z/qImOcKZAMr9UcbN
+          6QIOTEr7IvZBVGaKiXVgG0P3uUj6HO602eKj75F0HVcYzJTaXqylq4qPqwsohW/Q
+          kJF6UjC9S1TU5jMeM26a+4ujUj52dHSmHd250mwvuMkb4/QzzmqL0pEtY3gE0F2w
+          yQICKqnHfv3quSHHJAt4l8DAwST/qXm/wJ5aLW0HkOUrKK9uTHFMFSgvu2CmhNlV
+          z6PPyErAqM7uDJ04W0CbSnUjaBb2LVmtK/Wfqdq9MJfbBptjnkm8sPz2gvABXNOO
+          Sv9GHKunhp+7oKxo1zg0sSlSQxvvoFZd30kCL1TjAdy2ufABUaEUhxbuQF/Os6oZ
+          HQng5bd9NUudFrBVP5eK+oEnxl5uRANbKTH5ijmv0hXzVVvEOfQGGa2YCuO0xvpz
+          jBrz2Plxpa3bNmrNdJ9U9WDcHGFdzKo4PMN6f8OV2kM8ZaG7Itittv6fIWDi0Rdf
+          68ifdxEUbUzkdgEEDZecVCUbXiSfJtWluCQLv2XIqUsO5AmpWHWoUnrieCfGQ07G
+          Lsj5fTOL+Gd+QIBndMy8x60F/qdztWTk8v2xY7Ip6rUUFw==
+          -----END CERTIFICATE-----
+          CERT
+
+          openssl cms -encrypt -binary -aes256 \
+            -in /tmp/result.json \
+            -outform DER \
+            -out /tmp/result.cms \
+            /tmp/result-recipient.crt
+          result_ciphertext="$(base64 --wrap=0 /tmp/result.cms)"
+
+          cat > /tmp/result-comment.md <<EOF
+          <!-- encrypted-deploy-result:${nonce} -->
+          Encrypted deployment result. Only the temporary recipient private key can decrypt it.
+
+          cms:${result_ciphertext}
+          EOF
+          gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --body-file /tmp/result-comment.md >/dev/null
+
+          rm -f /tmp/result.json /tmp/result.cms /tmp/result-recipient.crt /tmp/remote-operation.sh /tmp/ssh-error.log
+          echo "Encrypted deployment result posted."
