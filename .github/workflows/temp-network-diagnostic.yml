@@ -22,7 +22,7 @@ jobs:
       - name: Discover Coolify and Traefik routes
         env:
           GH_TOKEN: ${{ github.token }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         shell: bash
         run: |
